@@ -5,7 +5,7 @@
 
 #define PRINT_PERIOD 8
 
-#include "waypoints.h"
+#include "motors.h"
 #define MOTOR_POLES 14
 #define RATIO 1.0
 
@@ -88,8 +88,6 @@ void loop()
     if (LOOP)
     {
       navigate(desired_throttle, desired_rotate); // Use updated throttle and rotate
-      float this_current = (float)current;
-      float this_duration = DURATION;
 
       // Continue with print debug info...
       for (int idx = 0; idx < NUM_MOTOR; idx++)
