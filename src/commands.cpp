@@ -1,7 +1,6 @@
 #include <Arduino.h>
-
-float desired_throttle = 0.0; // Initialize throttle value
-float desired_rotate = 0.0;   // Initialize rotation value
+#include "motors.h"
+#include "commands.h"
 
 void parseCommand(String command)
 {

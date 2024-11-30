@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <FlexCAN_T4.h>
 #include "vesc_motors.h"
-#include "command.cpp"
+#include "commands.h"
 
 #define PRINT_PERIOD 8
 
@@ -13,14 +13,22 @@
 // #define DRUM_DIAMETER 65.0
 // #define RATIO POSITION_ANGLE_DIVISION *M_PI *DRUM_DIAMETER / 360.0
 
-uint8_t can_id[NUM_MOTOR] = {1, 2, 3, 4, 5, 6};
-uint8_t poles[NUM_MOTOR] = {MOTOR_POLES, MOTOR_POLES};
-float ratio[NUM_MOTOR] = {RATIO, RATIO};
+uint8_t can_id[NUM_MOTOR] = {40, 83, 13, 116, 76, 108};
+uint8_t poles[NUM_MOTOR] = {MOTOR_POLES, MOTOR_POLES, MOTOR_POLES, MOTOR_POLES, MOTOR_POLES, MOTOR_POLES};
+float ratio[NUM_MOTOR] = {RATIO, RATIO, RATIO, RATIO, RATIO, RATIO};
+float positions[NUM_MOTOR] = {0, 0, 0, 0, 0, 0};
+
+float init_length[NUM_MOTOR] = {525.0, 525.0, 525.0, 525.0, 525.0, 525.0}; // Initial position of the motors
+
+bool commandReceived = false; // Flag to indicate a command was received
 
 vesc_motors<CAN1, NUM_MOTOR> can1_motors(can_id, poles, ratio);
 
 unsigned long time_last = 0;
 unsigned long time_start = 0;
+
+float desired_throttle = 0.0;
+float desired_rotate = 0.0;
 
 // Initialize the robot
 void setup()
@@ -52,6 +60,7 @@ void navigate(float throttle, float rotate)
   for (int i = 0; i < NUM_MOTOR_PROP; i++)
   {
     can1_motors.set_duty(can_id[i], duty_sign);
+    Serial.print("Duty: " + String(can_id[i]) + " Value: " + String(duty_sign) + "\n");
   }
 
   // Get the initial positions of the direction motors for calibration
@@ -60,6 +69,7 @@ void navigate(float throttle, float rotate)
   for (int i = 3; i < NUM_MOTOR; i++)
   {
     initial_positions[i - 3] = can1_motors.get_pos(can_id[i]);
+    Serial.print("Get POS: " + String(can_id[i]) + " Value: " + String(initial_positions[i - 3]) + "\n");
   }
 
   // Calculate target positions for direction motors
@@ -67,6 +77,7 @@ void navigate(float throttle, float rotate)
   {
     float target = initial_positions[i] + rotate * 360.0; // Scale rotation to -360 to +360
     can1_motors.set_pos(can_id[i + 3], target);
+    Serial.print("PUSH POS: " + String(can_id[i]) + " Value: " + String(target) + "\n");
   }
 }
 
@@ -81,23 +92,25 @@ void loop()
   {
     String command = Serial.readStringUntil('\n'); // Read command until newline
     parseCommand(command);
+    commandReceived = true; // Set the flag to true when a command is received
   }
 
   if (time_now - time_last >= 1)
   {
-    if (LOOP)
+    if (commandReceived)
     {
       navigate(desired_throttle, desired_rotate); // Use updated throttle and rotate
 
-      // Continue with print debug info...
+      // Print debug info...
       for (int idx = 0; idx < NUM_MOTOR; idx++)
       {
-        if (PRINT_PERIOD && (time_now - time_start) % PRINT_PERIOD == 0)
-        {
-          Serial.print(idx == NUM_MOTOR - 1 ? "\n" : ",");
-        }
+        positions[idx] = can1_motors.get_pos(can_id[idx]);
+        Serial.print("Positions of Motor " + String(idx) + ": " + String(positions[idx]) + "\n");
       }
+
+      commandReceived = false;
     }
+
     time_last = time_now;
   }
 }
