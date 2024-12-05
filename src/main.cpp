@@ -22,7 +22,7 @@ float init_length[NUM_MOTOR] = {525.0, 525.0, 525.0, 525.0, 525.0, 525.0}; // In
 
 bool commandReceived = false; // Flag to indicate a command was received
 
-vesc_motors<CAN1, NUM_MOTOR> can1_motors(can_id, poles, ratio);
+vesc_motors<CAN2, NUM_MOTOR> can2_motors(can_id, poles, ratio);
 
 unsigned long time_last = 0;
 unsigned long time_start = 0;
@@ -33,12 +33,11 @@ float desired_rotate = 0.0;
 // Initialize the robot
 void setup()
 {
-  Serial.begin(9600); // Start serial communication at 9600 baud
-  can1_motors.begin();
+  can2_motors.begin();
   delay(100);
-  can1_motors.update();
+  can2_motors.update();
   // Offset initialization of robot motor positions
-  can1_motors.multi_set_offset(init_length);
+  can2_motors.multi_set_offset(init_length);
   Serial.println("Start");
   time_start = millis();
   time_last = time_start;
@@ -59,7 +58,7 @@ void navigate(float throttle, float rotate)
 
   for (int i = 0; i < NUM_MOTOR_PROP; i++)
   {
-    can1_motors.set_duty(can_id[i], duty_sign);
+    can2_motors.set_duty(can_id[i], duty_sign);
     Serial.print("Duty: " + String(can_id[i]) + " Value: " + String(duty_sign) + "\n");
   }
 
@@ -68,7 +67,7 @@ void navigate(float throttle, float rotate)
 
   for (int i = 3; i < NUM_MOTOR; i++)
   {
-    initial_positions[i - 3] = can1_motors.get_pos(can_id[i]);
+    initial_positions[i - 3] = can2_motors.get_pos(can_id[i]);
     Serial.print("Get POS: " + String(can_id[i]) + " Value: " + String(initial_positions[i - 3]) + "\n");
   }
 
@@ -76,7 +75,7 @@ void navigate(float throttle, float rotate)
   for (int i = 0; i < NUM_MOTOR_DIRC; i++)
   {
     float target = initial_positions[i] + rotate * 360.0; // Scale rotation to -360 to +360
-    can1_motors.set_pos(can_id[i + 3], target);
+    can2_motors.set_pos(can_id[i + 3], target);
     Serial.print("PUSH POS: " + String(can_id[i]) + " Value: " + String(target) + "\n");
   }
 }
@@ -85,7 +84,7 @@ void navigate(float throttle, float rotate)
 void loop()
 {
   unsigned long time_now = millis();
-  can1_motors.update();
+  can2_motors.update();
 
   // Check for incoming serial data
   if (Serial.available())
@@ -104,7 +103,7 @@ void loop()
       // Print debug info...
       for (int idx = 0; idx < NUM_MOTOR; idx++)
       {
-        positions[idx] = can1_motors.get_pos(can_id[idx]);
+        positions[idx] = can2_motors.get_pos(can_id[idx]);
         Serial.print("Positions of Motor " + String(idx) + ": " + String(positions[idx]) + "\n");
       }
 
